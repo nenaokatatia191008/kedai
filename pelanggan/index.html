@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kedai Kekinian • Pelanggan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root{
+    --bg1:#fcf3e9;--bg2:#ffded0;--card:#fff5eb;--border:#ffd4be;
+    --dark:#3d2b1f;--mid:#5c3f2e;--light:#8a6a52;
+    --a1:#f75c3c;--a2:#ff914d;--soft:#ffede5;
+    --grad: linear-gradient(135deg,var(--a1),var(--a2));
+  }
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif}
+  body{background:linear-gradient(160deg,var(--bg1),var(--bg2));min-height:100vh;display:flex;justify-content:center;padding:20px}
+  .wrap{max-width:640px;width:100%}
+  .card{background:var(--card);border:1.5px solid var(--border);border-radius:22px;padding:16px;margin-bottom:14px}
+  h1{font-size:20px;font-weight:900;color:var(--dark)}
+  h1 span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  p.tag{color:var(--light);font-size:12px;font-weight:700;margin-top:2px}
+  input,select{width:100%;background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:11px 14px;font-size:14px;font-weight:600;color:var(--dark);margin-bottom:8px;outline:none;font-family:inherit}
+  .btn{width:100%;padding:13px;border:none;border-radius:60px;font-weight:900;font-size:14px;cursor:pointer;background:var(--grad);color:#fff;box-shadow:0 8px 18px rgba(247,92,60,.3)}
+  .btn.ghost{background:#fff;color:var(--dark);border:1.5px dashed var(--border);box-shadow:none}
+  .btn.small{width:auto;padding:8px 16px;font-size:12px}
+  .row{display:flex;gap:8px}
+  .tabs{display:flex;gap:4px;background:var(--soft);padding:4px;border-radius:60px;margin-bottom:14px;overflow-x:auto}
+  .tab{flex:1;background:transparent;border:none;padding:9px 6px;border-radius:60px;font-weight:800;font-size:11px;color:var(--light);cursor:pointer;white-space:nowrap}
+  .tab.active{background:#fff;color:var(--a1)}
+  .panel{display:none}.panel.active{display:block}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+  .stat{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:10px}
+  .stat .l{font-size:9px;font-weight:800;color:var(--light);text-transform:uppercase}
+  .stat .v{font-size:16px;font-weight:900;color:var(--a1)}
+  .menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+  .item{background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:12px;text-align:center;cursor:pointer}
+  .item .em{font-size:30px;display:block;margin-bottom:6px}
+  .item .nm{font-weight:700;font-size:12px;color:var(--dark);min-height:32px}
+  .item .hg{font-weight:800;color:var(--a1);font-size:12px;background:var(--soft);padding:3px 10px;border-radius:60px;display:inline-block;margin-top:4px}
+  .item.out{opacity:.4;pointer-events:none}
+  .cart-line{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:8px 12px;margin-bottom:6px;font-size:13px}
+  .cart-line .qty{margin-left:auto;display:flex;align-items:center;gap:6px}
+  .cart-line .qty button{border:none;background:var(--soft);width:24px;height:24px;border-radius:50%;font-weight:900;color:var(--a1);cursor:pointer}
+  .total{display:flex;justify-content:space-between;align-items:center;font-weight:900;font-size:18px;margin:10px 0;color:var(--dark)}
+  .hist{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:10px 14px;margin-bottom:8px;font-size:13px;display:flex;justify-content:space-between}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1f1510;color:#fde3d0;padding:10px 20px;border-radius:60px;font-size:13px;font-weight:700;z-index:999}
+  .empty{text-align:center;padding:30px;color:var(--light);font-weight:600;font-size:13px}
+  .lock{text-align:center;padding:30px;background:var(--soft);border-radius:16px;border:1.5px dashed var(--border)}
+  .voucher{background:var(--grad);color:#fff;border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700}
+  .badge{font-size:9px;background:rgba(255,255,255,.85);color:var(--a1);padding:2px 8px;border-radius:60px;font-weight:900}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ LOGIN ============ -->
+  <div class="card" id="authBox">
+    <h1>Kedai <span>Kekinian</span></h1>
+    <p class="tag">Login / daftar buat mulai pesan & kumpulin poin ✨</p>
+    <div class="tabs" style="margin-top:12px">
+      <button class="tab active" data-auth="login">Login</button>
+      <button class="tab" data-auth="register">Daftar</button>
+    </div>
+    <div id="loginForm">
+      <input id="lUser" placeholder="Username">
+      <input id="lPass" type="password" placeholder="Password">
+      <button class="btn" id="loginBtn">MASUK 🚀</button>
+    </div>
+    <div id="regForm" style="display:none">
+      <input id="rUser" placeholder="Username">
+      <input id="rName" placeholder="Nama kamu">
+      <input id="rPass" type="password" placeholder="Password (min 5)">
+      <button class="btn" id="regBtn">DAFTAR ✨</button>
+    </div>
+    <button class="btn ghost" id="guestBtn" style="margin-top:8px">👀 Lihat menu tanpa login</button>
+  </div>
+
+  <!-- ============ APP ============ -->
+  <div id="app" style="display:none">
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <h1 style="font-size:16px">Halo, <span id="whoName">-</span></h1>
+        <p class="tag" id="whoRole"></p>
+      </div>
+      <button class="btn small ghost" id="logoutBtn">Logout</button>
+    </div>
+
+    <div class="grid3" id="statBox" style="display:none">
+      <div class="stat"><div class="l">Poin</div><div class="v" id="statPoin">0</div></div>
+      <div class="stat"><div class="l">Token</div><div class="v" id="statToken">0</div></div>
+      <div class="stat"><div class="l">Rank</div><div class="v" id="statTier">Bronze</div></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="menu">🍽️ Menu</button>
+      <button class="tab" data-tab="vip">👑 VIP</button>
+      <button class="tab" data-tab="spin">🎰 Spin</button>
+      <button class="tab" data-tab="voucher">🎟️ Voucher</button>
+      <button class="tab" data-tab="riwayat">🧾 Riwayat</button>
+    </div>
+
+    <div class="panel active" id="p-menu">
+      <div class="card"><div class="menu-grid" id="menuGrid"></div></div>
+      <div class="card" id="cartCard">
+        <h1 style="font-size:14px;margin-bottom:8px">🛒 Keranjang</h1>
+        <div id="cartList"></div>
+        <div class="total"><span>Total</span><span id="cartTotal">Rp 0</span></div>
+        <button class="btn" id="checkoutBtn">PESAN SEKARANG</button>
+      </div>
+    </div>
+
+    <div class="panel" id="p-vip"><div class="card" id="vipArea"></div></div>
+    <div class="panel" id="p-spin"><div class="card" id="spinArea"></div></div>
+    <div class="panel" id="p-voucher"><div class="card" id="voucherArea"></div></div>
+    <div class="panel" id="p-riwayat"><div class="card" id="riwayatArea"></div></div>
+  </div>
+</div>
+
+<script>
+// =========================================================
+// ISI DENGAN CREDENTIAL SUPABASE PROJECT KAMU
+// Supabase Dashboard > Project Settings > API
+// =========================================================
+const SUPABASE_URL = "https://GANTI-INI.supabase.co";
+const SUPABASE_ANON_KEY = "GANTI-DENGAN-ANON-PUBLIC-KEY";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const $ = id => document.getElementById(id);
+let me = null;      // row customer kalau login
+let isGuest = false;
+let menu = [];
+let cart = [];
+
+const TIERS = [
+  {id:'bronze',name:'Bronze',icon:'🥉',min:0,next:500},
+  {id:'silver',name:'Silver',icon:'🥈',min:500,next:2000},
+  {id:'gold',name:'Gold',icon:'🥇',min:2000,next:6000},
+  {id:'platinum',name:'Platinum',icon:'💠',min:6000,next:15000},
+  {id:'obsidian',name:'Royal Obsidian',icon:'🔮',min:15000,next:Infinity,requiresVip:'executive'}
+];
+const VIP_TIERS = [
+  {id:'none',name:'Member Biasa',icon:'👤',min:0,next:100},
+  {id:'vip',name:'VIP',icon:'⭐',min:100,next:300},
+  {id:'vip_plus',name:'VIP+',icon:'⭐⭐',min:300,next:700},
+  {id:'vip_plus_plus',name:'VIP++',icon:'⭐⭐⭐',min:700,next:1500},
+  {id:'executive',name:'Executive',icon:'👑',min:1500,next:Infinity}
+];
+function getTier(pts){let t=TIERS[0];for(const x of TIERS){if(pts>=x.min)t=x;}return t;}
+function getVip(pts){let t=VIP_TIERS[0];for(const x of VIP_TIERS){if(pts>=x.min)t=x;}return t;}
+
+function toast(msg){
+  document.querySelectorAll('.toast').forEach(t=>t.remove());
+  const t=document.createElement('div');t.className='toast';t.textContent=msg;
+  document.body.appendChild(t);setTimeout(()=>t.remove(),2200);
+}
+function rupiah(n){return 'Rp '+Number(n).toLocaleString('id-ID');}
+function genCode(prefix){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s=prefix;for(let i=0;i<4;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
+
+// ============ AUTH ============
+document.querySelectorAll('[data-auth]').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('[data-auth]').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  $('loginForm').style.display = t.dataset.auth==='login' ? 'block':'none';
+  $('regForm').style.display = t.dataset.auth==='register' ? 'block':'none';
+}));
+
+$('loginBtn').addEventListener('click', async ()=>{
+  const u=$('lUser').value.trim(), p=$('lPass').value;
+  if(!u||!p){toast('⚠️ Isi username & password');return;}
+  const {data,error} = await sb.from('customers').select('*').eq('username',u).eq('password',p).maybeSingle();
+  if(error||!data){toast('❌ Username/password salah');return;}
+  me=data; isGuest=false; localStorage.setItem('kedai_session_id', me.id);
+  await checkVipReset();
+  startApp();
+});
+
+$('regBtn').addEventListener('click', async ()=>{
+  const u=$('rUser').value.trim(), n=$('rName').value.trim(), p=$('rPass').value;
+  if(!u||!n||!p){toast('⚠️ Isi semua field');return;}
+  if(p.length<5){toast('⚠️ Password minimal 5 karakter');return;}
+  const {data:exist} = await sb.from('customers').select('id').eq('username',u).maybeSingle();
+  if(exist){toast('❌ Username sudah dipakai');return;}
+  const {data,error} = await sb.from('customers').insert({username:u,name:n,password:p}).select().single();
+  if(error){toast('❌ Gagal daftar: '+error.message);return;}
+  me=data; isGuest=false; localStorage.setItem('kedai_session_id', me.id);
+  startApp(); toast(`✨ Selamat datang ${n}!`);
+});
+
+$('guestBtn').addEventListener('click', ()=>{ isGuest=true; me=null; startApp(); });
+
+$('logoutBtn').addEventListener('click', ()=>{
+  localStorage.removeItem('kedai_session_id');
+  me=null; isGuest=false; cart=[];
+  $('app').style.display='none'; $('authBox').style.display='block';
+});
+
+async function checkVipReset(){
+  if(!me) return;
+  const last = me.vip_reset_date ? new Date(me.vip_reset_date) : new Date();
+  const months = (new Date().getFullYear()-last.getFullYear())*12 + (new Date().getMonth()-last.getMonth());
+  if(months>=3){
+    const {data} = await sb.from('customers').update({vip_points:0, vip_tier:'none', vip_reset_date:new Date().toISOString()}).eq('id',me.id).select().single();
+    if(data) me=data;
+  }
+}
+
+// auto-login kalau sesi tersimpan
+(async function initSession(){
+  const sid = localStorage.getItem('kedai_session_id');
+  if(sid){
+    const {data} = await sb.from('customers').select('*').eq('id',sid).maybeSingle();
+    if(data){ me=data; await checkVipReset(); startApp(); return; }
+  }
+})();
+
+// ============ START APP ============
+async function startApp(){
+  $('authBox').style.display='none';
+  $('app').style.display='block';
+  $('whoName').textContent = isGuest ? 'Guest' : me.name;
+  $('whoRole').textContent = isGuest ? 'Mode lihat-lihat' : '@'+me.username;
+  $('statBox').style.display = isGuest ? 'none':'grid';
+  await loadMenu();
+  if(!isGuest) refreshStats();
+  renderTabLocks();
+}
+
+function refreshStats(){
+  if(!me) return;
+  const t = getTier(pointsForTier());
+  $('statPoin').textContent = me.points.toLocaleString();
+  $('statToken').textContent = me.tokens;
+  $('statTier').textContent = t.name;
+}
+function pointsForTier(){ return me.points; }
+
+function renderTabLocks(){
+  ['vip','spin','voucher','riwayat'].forEach(tab=>{
+    // konten di-render tiap kali tab dibuka (lihat listener di bawah)
+  });
+}
+
+// ============ TABS ============
+document.querySelectorAll('[data-tab]').forEach(t=>t.addEventListener('click',()=>{
+  if(isGuest && t.dataset.tab!=='menu'){ toast('🔒 Login dulu buat akses fitur ini'); return; }
+  document.querySelectorAll('[data-tab]').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  $('p-'+t.dataset.tab).classList.add('active');
+  if(t.dataset.tab==='vip') renderVip();
+  if(t.dataset.tab==='spin') renderSpin();
+  if(t.dataset.tab==='voucher') renderVoucher();
+  if(t.dataset.tab==='riwayat') renderRiwayat();
+}));
+
+// ============ MENU ============
+async function loadMenu(){
+  const {data} = await sb.from('menu_items').select('*').eq('aktif',true).order('id');
+  menu = data || [];
+  $('menuGrid').innerHTML = menu.map(m=>`
+    <div class="item ${m.stok<=0?'out':''}" data-id="${m.id}">
+      <span class="em">${m.emoji||'🍽️'}</span>
+      <div class="nm">${m.nama}</div>
+      <div class="hg">Rp ${(m.harga/1000)}k</div>
+    </div>`).join('');
+  $('menuGrid').querySelectorAll('.item').forEach(el=>el.addEventListener('click',()=>{
+    if(isGuest){toast('🔒 Login dulu buat pesan');return;}
+    const id=parseInt(el.dataset.id);
+    const item=menu.find(x=>x.id===id);
+    if(!item||item.stok<=0)return;
+    const ex=cart.find(c=>c.id===id);
+    if(ex){ if(ex.qty>=item.stok){toast('📦 Stok habis');return;} ex.qty++; }
+    else cart.push({...item,qty:1});
+    renderCart();
+    toast(`+1 ${item.emoji} ${item.nama}`);
+  }));
+}
+function renderCart(){
+  if(cart.length===0){ $('cartList').innerHTML='<div class="empty">Keranjang kosong</div>'; }
+  else {
+    $('cartList').innerHTML = cart.map(c=>`
+      <div class="cart-line">
+        <span>${c.emoji} ${c.nama}</span>
+        <div class="qty">
+          <button data-act="minus" data-id="${c.id}">−</button>
+          <span>${c.qty}</span>
+          <button data-act="plus" data-id="${c.id}">+</button>
+        </div>
+      </div>`).join('');
+    $('cartList').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+      const id=parseInt(b.dataset.id);
+      const item=menu.find(x=>x.id===id);
+      const c=cart.find(x=>x.id===id);
+      if(b.dataset.act==='plus'){ if(c.qty>=item.stok){toast('📦 Stok habis');return;} c.qty++; }
+      else { c.qty--; if(c.qty<=0) cart=cart.filter(x=>x.id!==id); }
+      renderCart();
+    }));
+  }
+  const total = cart.reduce((s,c)=>s+c.harga*c.qty,0);
+  $('cartTotal').textContent = rupiah(total);
+}
+
+$('checkoutBtn').addEventListener('click', async ()=>{
+  if(isGuest){toast('🔒 Login dulu buat pesan');return;}
+  if(cart.length===0){toast('🤙 Keranjang masih kosong');return;}
+  const total = cart.reduce((s,c)=>s+c.harga*c.qty,0);
+  const pointsEarned = Math.floor(total/1000);
+  const vipPointsEarned = Math.floor(total/10000);
+
+  // cek & kurangi stok tiap item
+  for(const c of cart){
+    const {data:fresh} = await sb.from('menu_items').select('stok').eq('id',c.id).single();
+    if(!fresh || fresh.stok < c.qty){ toast(`📦 ${c.nama} stoknya berubah, cek ulang keranjang`); await loadMenu(); return; }
+  }
+  for(const c of cart){
+    await sb.from('menu_items').update({stok: (menu.find(m=>m.id===c.id).stok - c.qty)}).eq('id',c.id);
+  }
+
+  const orderCode = 'ORD'+Date.now();
+  await sb.from('transactions').insert({
+    order_code: orderCode, customer_id: me.id, customer_name: me.name,
+    items: cart.map(c=>({id:c.id,nama:c.nama,emoji:c.emoji,harga:c.harga,qty:c.qty})),
+    total, points_earned: pointsEarned, vip_points_earned: vipPointsEarned, status:'pending'
+  });
+
+  const newPoints = me.points + pointsEarned;
+  const newVipPoints = me.vip_points + vipPointsEarned;
+  const newTier = getTier(newPoints).id;
+  const newVipTier = getVip(newVipPoints).id;
+
+  const {data:updated} = await sb.from('customers').update({
+    points:newPoints, vip_points:newVipPoints, tier:newTier, vip_tier:newVipTier,
+    total_spent: me.total_spent+total, total_orders: me.total_orders+1
+  }).eq('id',me.id).select().single();
+  me = updated;
+
+  cart=[]; renderCart(); await loadMenu(); refreshStats();
+  toast(`✅ Pesanan dikirim! +${pointsEarned} 💎 +${vipPointsEarned} 👑`);
+});
+
+// ============ VIP ============
+function renderVip(){
+  const vt = getVip(me.vip_points);
+  const idx = VIP_TIERS.findIndex(v=>v.id===vt.id);
+  const next = VIP_TIERS[idx+1];
+  let html = `<h1 style="font-size:16px">${vt.icon} ${vt.name}</h1>
+    <p class="tag">${me.vip_points.toLocaleString()} VIP Point</p>`;
+  if(next){
+    const pct = Math.min(100, ((me.vip_points-vt.min)/(next.min-vt.min))*100);
+    html += `<div style="height:8px;background:var(--soft);border-radius:60px;margin:10px 0;overflow:hidden">
+      <div style="height:100%;width:${pct}%;background:var(--grad)"></div></div>
+      <p class="tag">Kurang ${(next.min-me.vip_points).toLocaleString()} VIP Point lagi ke ${next.name}</p>`;
+  } else html += `<p class="tag">🎉 Kamu di VIP tertinggi!</p>`;
+  html += `<div style="margin-top:14px">`+VIP_TIERS.map(v=>`
+    <div class="hist"><span>${v.icon} ${v.name} ${v.id===vt.id?'<b>(sekarang)</b>':''}</span><span>${v.min.toLocaleString()}+</span></div>
+  `).join('')+`</div>`;
+  $('vipArea').innerHTML = html;
+}
+
+// ============ SPIN ============
+const SPIN_PRIZES = [
+  {name:'Zonk',emoji:'😭',type:'zonk',value:0,weight:35},
+  {name:'10 Poin',emoji:'💎',type:'points',value:10,weight:20},
+  {name:'25 Poin',emoji:'💎',type:'points',value:25,weight:15},
+  {name:'Voucher Rp 2.000',emoji:'🎟️',type:'voucher',value:2000,weight:12},
+  {name:'50 Poin',emoji:'💎',type:'points',value:50,weight:8},
+  {name:'Voucher Rp 5.000',emoji:'🎟️',type:'voucher',value:5000,weight:5},
+  {name:'100 Poin',emoji:'💎',type:'points',value:100,weight:1.5},
+  {name:'Voucher Rp 15.000',emoji:'🏆',type:'voucher',value:15000,weight:.1}
+];
+function renderSpin(){
+  $('spinArea').innerHTML = `
+    <h1 style="font-size:16px">🎰 Token kamu: ${me.tokens} / 5</h1>
+    <p class="tag">Kumpulin 5 token buat 1x spin gratis</p>
+    <div class="row" style="margin-top:12px">
+      <button class="btn" id="claimWeekly">📅 Klaim token mingguan</button>
+    </div>
+    <button class="btn" id="doSpin" style="margin-top:8px" ${me.tokens<5?'disabled':''}>SPIN SEKARANG!</button>
+  `;
+  $('claimWeekly').addEventListener('click', claimWeekly);
+  $('doSpin').addEventListener('click', doSpin);
+}
+async function claimWeekly(){
+  const last = me.last_weekly_token_date ? new Date(me.last_weekly_token_date).getTime() : 0;
+  if(Date.now()-last < 7*24*60*60*1000){ toast('⏰ Token mingguan belum siap'); return; }
+  const {data} = await sb.from('customers').update({tokens: me.tokens+1, last_weekly_token_date:new Date().toISOString()}).eq('id',me.id).select().single();
+  me=data; refreshStats(); renderSpin(); toast('📅 +1 token mingguan!');
+}
+async function doSpin(){
+  if(me.tokens<5){toast('⚠️ Token belum cukup');return;}
+  const totalW = SPIN_PRIZES.reduce((s,p)=>s+p.weight,0);
+  let r = Math.random()*totalW, prize=SPIN_PRIZES[0];
+  for(const p of SPIN_PRIZES){ r-=p.weight; if(r<=0){prize=p;break;} }
+
+  let newPoints = me.points;
+  if(prize.type==='points') newPoints += prize.value;
+  if(prize.type==='zonk') newPoints += 1;
+  const {data} = await sb.from('customers').update({tokens: me.tokens-5, points:newPoints, tier:getTier(newPoints).id}).eq('id',me.id).select().single();
+  me=data;
+
+  if(prize.type==='voucher'){
+    await sb.from('vouchers').insert({customer_id:me.id, code:genCode('SPIN'), title:prize.name, description:'Dari spin wheel', value:prize.value, type:'diskon'});
+  }
+  refreshStats(); renderSpin();
+  toast(`${prize.emoji} ${prize.name}`);
+}
+
+// ============ VOUCHER ============
+async function renderVoucher(){
+  const {data} = await sb.from('vouchers').select('*').eq('customer_id',me.id).eq('used',false).order('created_at',{ascending:false});
+  if(!data || data.length===0){ $('voucherArea').innerHTML='<div class="empty">🎟️ Belum ada voucher aktif</div>'; return; }
+  $('voucherArea').innerHTML = data.map(v=>`
+    <div class="voucher"><span>${v.title}</span><span class="badge">${v.code}</span></div>
+  `).join('');
+}
+
+// ============ RIWAYAT ============
+async function renderRiwayat(){
+  const {data} = await sb.from('transactions').select('*').eq('customer_id',me.id).order('created_at',{ascending:false}).limit(30);
+  if(!data || data.length===0){ $('riwayatArea').innerHTML='<div class="empty">🧾 Belum ada transaksi</div>'; return; }
+  $('riwayatArea').innerHTML = data.map(t=>{
+    const d=new Date(t.created_at);
+    return `<div class="hist"><span>${d.toLocaleDateString('id-ID')} • ${t.items.reduce((s,i)=>s+i.qty,0)} item</span><span>${rupiah(t.total)}</span></div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>
